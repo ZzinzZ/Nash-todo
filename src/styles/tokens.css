@@ -1,0 +1,265 @@
+/* =========================================================================
+   Token nền tảng. Bảng sáng định nghĩa đầy đủ trên :root; bảng tối chỉ
+   ghi đè lại đúng những token đổi vai trò.
+
+   Màu chủ đạo là một cặp toạ độ (--a-l / --a-c / --a-h) chứ không phải một
+   danh sách màu chép tay: workspace chỉ đổi toạ độ, còn accent, tiêu điểm
+   và cả nền mesh tự dẫn xuất theo. Thêm một màu mới = thêm một dòng.
+   ========================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* --- Toạ độ màu chủ đạo (mặc định: lam) --- */
+  --a-l: 0.55;
+  --a-c: 0.19;
+  --a-h: 255;
+
+  /* --- Nền mesh (nguồn màu duy nhất cho kính khúc xạ) --- */
+  --mesh-1: oklch(0.82 0.13 var(--a-h));
+  --mesh-2: oklch(0.86 0.11 calc(var(--a-h) - 62));
+  --mesh-3: oklch(0.84 0.12 calc(var(--a-h) + 52));
+  --mesh-base: oklch(0.96 0.012 var(--a-h));
+
+  /* --- Vật liệu kính --- */
+  --glass-chrome: oklch(1 0 0 / 0.55);
+  --glass-panel: oklch(1 0 0 / 0.42);
+  /* Cột là cái khay: chỉ một lớp màu rất mỏng, KHÔNG blur. Nhờ vậy nền mesh
+     còn nguyên vân màu để mặt kính của thẻ có cái mà khúc xạ. */
+  --glass-tray: oklch(1 0 0 / 0.28);
+  --glass-card: oklch(1 0 0 / 0.58);
+  --glass-card-hover: oklch(1 0 0 / 0.72);
+  --glass-raised: oklch(1 0 0 / 0.78);
+  /* Menu nằm bên trong thanh trên — mà thanh trên đã là một backdrop root,
+     nên backdrop-filter của menu không còn gì để làm mờ. Menu vì thế phải tự
+     đục, không mượn được kính của nền. */
+  --surface-menu: oklch(0.99 0.004 260 / 0.96);
+  /* Vệt sáng chạy chéo mặt thẻ — thứ làm kính ra kính chứ không phải nhựa mờ. */
+  --sheen: oklch(1 0 0 / 0.55);
+  --sheen-edge: oklch(1 0 0 / 0.9);
+  --rim: oklch(1 0 0 / 0.65);
+  --rim-soft: oklch(1 0 0 / 0.35);
+  --hairline: oklch(0.45 0.02 265 / 0.14);
+
+  --blur-chrome: 28px;
+  --blur-panel: 22px;
+  --blur-card: 16px;
+  --saturate: 180%;
+
+  /* --- Chữ. --ink-3 là sàn; không có gì nhạt hơn nó. --- */
+  --ink: oklch(0.24 0.015 265);
+  --ink-2: oklch(0.42 0.018 265);
+  /* 0.485 chứ không phải 0.52: ở 0.52 chữ placeholder trên thanh kính
+     chỉ đạt 4.26:1, trượt ngưỡng AA. Đã đo lại sau khi đổi. */
+  --ink-3: oklch(0.485 0.018 265);
+  --ink-on-accent: oklch(1 0 0);
+
+  /* --- Accent: hành động chính, tiêu điểm, trạng thái chọn. Không trang trí. --- */
+  --accent: oklch(var(--a-l) var(--a-c) var(--a-h));
+  --accent-hover: oklch(calc(var(--a-l) - 0.06) var(--a-c) var(--a-h));
+  --accent-wash: oklch(var(--a-l) var(--a-c) var(--a-h) / 0.14);
+  --danger: oklch(0.53 0.2 25);
+  --danger-wash: oklch(0.53 0.2 25 / 0.13);
+
+  /* --- Hạt giống màu thẻ. Độc lập với màu workspace: màu thẻ là cách người
+         dùng tự phân loại, đổi workspace không được làm nó nhảy sắc. --- */
+  --seed-red: oklch(0.62 0.19 25);
+  --seed-orange: oklch(0.68 0.16 55);
+  --seed-yellow: oklch(0.79 0.15 90);
+  --seed-green: oklch(0.66 0.16 145);
+  --seed-teal: oklch(0.68 0.12 190);
+  --seed-blue: oklch(0.62 0.17 255);
+  --seed-indigo: oklch(0.55 0.18 285);
+  --seed-purple: oklch(0.6 0.19 320);
+
+  /* --- Hình học --- */
+  --r-card: 14px;
+  --r-panel: 20px;
+  --r-sheet: 22px;
+  --r-control: 11px;
+  --r-input: 12px;
+
+  /* --- Thang z-index có ngữ nghĩa --- */
+  --z-sticky: 10;
+  --z-scrim: 40;
+  --z-sheet: 50;
+  --z-toast: 60;
+
+  /* --- Chuyển động --- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-fast: 140ms;
+  --t-base: 200ms;
+  --t-sheet: 280ms;
+
+  /* --- Thang chữ. Sàn tuyệt đối 13px. --- */
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.3125rem;
+
+  --font: "Segoe UI Variable Display", "Segoe UI", -apple-system,
+    BlinkMacSystemFont, "SF Pro Text", system-ui, Roboto, sans-serif;
+
+  --shadow-card: 0 1px 2px oklch(0.3 0.04 265 / 0.06), 0 8px 20px -12px oklch(0.3 0.04 265 / 0.35);
+  --shadow-card-hover: 0 2px 4px oklch(0.3 0.04 265 / 0.07), 0 14px 30px -14px oklch(0.3 0.04 265 / 0.4);
+  --shadow-sheet: 0 24px 60px oklch(0.2 0.03 265 / 0.22);
+  --shadow-drag: 0 18px 40px oklch(0.2 0.03 265 / 0.28);
+  --shadow-toast: 0 12px 32px oklch(0.2 0.03 265 / 0.2);
+}
+
+/* -------------------------------------------------------------------------
+   Bảng màu chủ đạo. Đặt SAU :root vì cùng độ đặc hiệu — luật sau thắng.
+   Vì chọn theo thuộc tính chứ không theo :root, đúng một bảng này cũng đủ
+   dùng cho các ô chọn màu trong tấm tùy chỉnh (chúng tự mang data-accent).
+   Độ sáng nhích theo sắc để chữ trắng luôn đạt AA khi đặt lên accent.
+   ------------------------------------------------------------------------- */
+
+[data-accent="blue"]   { --a-l: 0.55; --a-c: 0.19; --a-h: 255; }
+[data-accent="indigo"] { --a-l: 0.54; --a-c: 0.19; --a-h: 288; }
+[data-accent="purple"] { --a-l: 0.55; --a-c: 0.19; --a-h: 320; }
+[data-accent="teal"]   { --a-l: 0.52; --a-c: 0.13; --a-h: 196; }
+[data-accent="green"]  { --a-l: 0.51; --a-c: 0.15; --a-h: 152; }
+[data-accent="rose"]   { --a-l: 0.55; --a-c: 0.18; --a-h: 12; }
+
+/* Bảng tối: áp dụng khi hệ thống tối và người dùng chưa khoá sáng, hoặc khi khoá tối. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --mesh-1: oklch(0.38 0.13 var(--a-h));
+    --mesh-2: oklch(0.35 0.1 calc(var(--a-h) - 55));
+    --mesh-3: oklch(0.37 0.13 calc(var(--a-h) + 55));
+    --mesh-base: oklch(0.16 0.022 var(--a-h));
+
+    --glass-chrome: oklch(0.24 0.018 265 / 0.55);
+    --glass-panel: oklch(0.22 0.018 265 / 0.46);
+    --glass-tray: oklch(0.2 0.02 265 / 0.38);
+    /* Ở nền tối, "kính trắng" phải là tấm kính TỐI có gờ và vệt sáng trắng —
+       một tấm trắng thật kéo nền sáng lên và chữ phụ tụt xuống 3:1. Chất kính
+       ở đây do --rim và --sheen làm ra, không phải màu thân tấm. */
+    --glass-card: oklch(0.27 0.018 265 / 0.62);
+    --glass-card-hover: oklch(0.32 0.018 265 / 0.72);
+    --glass-raised: oklch(0.26 0.018 265 / 0.86);
+    --surface-menu: oklch(0.22 0.018 265 / 0.96);
+    --sheen: oklch(1 0 0 / 0.1);
+    --sheen-edge: oklch(1 0 0 / 0.3);
+    --rim: oklch(1 0 0 / 0.14);
+    --rim-soft: oklch(1 0 0 / 0.08);
+    --hairline: oklch(1 0 0 / 0.1);
+
+    --ink: oklch(0.97 0.004 265);
+    --ink-2: oklch(0.8 0.012 265);
+    --ink-3: oklch(0.7 0.012 265);
+
+    --accent: oklch(0.75 calc(var(--a-c) * 0.78) var(--a-h));
+    --accent-hover: oklch(0.81 calc(var(--a-c) * 0.72) var(--a-h));
+    --accent-wash: oklch(0.75 calc(var(--a-c) * 0.78) var(--a-h) / 0.2);
+    --ink-on-accent: oklch(0.18 0.02 265);
+    --danger: oklch(0.7 0.17 25);
+    --danger-wash: oklch(0.7 0.17 25 / 0.18);
+
+    --seed-red: oklch(0.7 0.17 25);
+    --seed-orange: oklch(0.76 0.14 55);
+    --seed-yellow: oklch(0.84 0.13 90);
+    --seed-green: oklch(0.74 0.14 145);
+    --seed-teal: oklch(0.76 0.11 190);
+    --seed-blue: oklch(0.72 0.14 255);
+    --seed-indigo: oklch(0.66 0.15 285);
+    --seed-purple: oklch(0.7 0.16 320);
+
+    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3), 0 10px 24px -14px oklch(0 0 0 / 0.7);
+    --shadow-card-hover: 0 2px 4px oklch(0 0 0 / 0.34), 0 16px 34px -16px oklch(0 0 0 / 0.75);
+    --shadow-sheet: 0 24px 60px oklch(0 0 0 / 0.55);
+    --shadow-drag: 0 18px 40px oklch(0 0 0 / 0.6);
+    --shadow-toast: 0 12px 32px oklch(0 0 0 / 0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --mesh-1: oklch(0.38 0.13 var(--a-h));
+  --mesh-2: oklch(0.35 0.1 calc(var(--a-h) - 55));
+  --mesh-3: oklch(0.37 0.13 calc(var(--a-h) + 55));
+  --mesh-base: oklch(0.16 0.022 var(--a-h));
+
+  --glass-chrome: oklch(0.24 0.018 265 / 0.55);
+  --glass-panel: oklch(0.22 0.018 265 / 0.46);
+  --glass-tray: oklch(0.2 0.02 265 / 0.38);
+  /* Ở nền tối, "kính trắng" phải là tấm kính TỐI có gờ và vệt sáng trắng —
+     một tấm trắng thật kéo nền sáng lên và chữ phụ tụt xuống 3:1. Chất kính
+     ở đây do --rim và --sheen làm ra, không phải màu thân tấm. */
+  --glass-card: oklch(0.27 0.018 265 / 0.62);
+  --glass-card-hover: oklch(0.32 0.018 265 / 0.72);
+  --glass-raised: oklch(0.26 0.018 265 / 0.86);
+  --surface-menu: oklch(0.22 0.018 265 / 0.96);
+  --sheen: oklch(1 0 0 / 0.1);
+  --sheen-edge: oklch(1 0 0 / 0.3);
+  --rim: oklch(1 0 0 / 0.14);
+  --rim-soft: oklch(1 0 0 / 0.08);
+  --hairline: oklch(1 0 0 / 0.1);
+
+  --ink: oklch(0.97 0.004 265);
+  --ink-2: oklch(0.8 0.012 265);
+  --ink-3: oklch(0.7 0.012 265);
+
+  --accent: oklch(0.75 calc(var(--a-c) * 0.78) var(--a-h));
+  --accent-hover: oklch(0.81 calc(var(--a-c) * 0.72) var(--a-h));
+  --accent-wash: oklch(0.75 calc(var(--a-c) * 0.78) var(--a-h) / 0.2);
+  --ink-on-accent: oklch(0.18 0.02 265);
+  --danger: oklch(0.7 0.17 25);
+  --danger-wash: oklch(0.7 0.17 25 / 0.18);
+
+  --seed-red: oklch(0.7 0.17 25);
+  --seed-orange: oklch(0.76 0.14 55);
+  --seed-yellow: oklch(0.84 0.13 90);
+  --seed-green: oklch(0.74 0.14 145);
+  --seed-teal: oklch(0.76 0.11 190);
+  --seed-blue: oklch(0.72 0.14 255);
+  --seed-indigo: oklch(0.66 0.15 285);
+  --seed-purple: oklch(0.7 0.16 320);
+
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3), 0 10px 24px -14px oklch(0 0 0 / 0.7);
+  --shadow-card-hover: 0 2px 4px oklch(0 0 0 / 0.34), 0 16px 34px -16px oklch(0 0 0 / 0.75);
+  --shadow-sheet: 0 24px 60px oklch(0 0 0 / 0.55);
+  --shadow-drag: 0 18px 40px oklch(0 0 0 / 0.6);
+  --shadow-toast: 0 12px 32px oklch(0 0 0 / 0.5);
+}
+
+/* Người dùng yêu cầu giảm trong suốt: bỏ kính, giữ nguyên bố cục. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-chrome: oklch(0.99 0.004 260);
+    --glass-panel: oklch(0.96 0.008 260);
+    --glass-tray: oklch(0.95 0.008 260);
+    --glass-card: oklch(1 0 0);
+    --glass-card-hover: oklch(1 0 0);
+    --glass-raised: oklch(1 0 0);
+    --surface-menu: oklch(1 0 0);
+    --sheen: transparent;
+    --sheen-edge: transparent;
+    --blur-chrome: 0px;
+    --blur-panel: 0px;
+    --blur-card: 0px;
+    --hairline: oklch(0.45 0.02 265 / 0.22);
+  }
+
+  :root[data-theme="dark"],
+  :root:not([data-theme="light"]) {
+    --glass-chrome: oklch(0.21 0.018 265);
+    --glass-panel: oklch(0.19 0.018 265);
+    --glass-tray: oklch(0.18 0.018 265);
+    --glass-card: oklch(0.26 0.016 265);
+    --glass-card-hover: oklch(0.3 0.016 265);
+    --glass-raised: oklch(0.24 0.018 265);
+    --surface-menu: oklch(0.2 0.018 265);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 1ms;
+    --t-base: 1ms;
+    --t-sheet: 1ms;
+  }
+}
