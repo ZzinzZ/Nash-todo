@@ -20,55 +20,113 @@ import {
   normalizeApp,
   sampleBoard,
 } from "./data/initial";
-import type { AppState, CardItem, Workspace } from "./types";
+import type { AppState, Board, CardItem, Workspace } from "./types";
 import { newId } from "./lib/id";
 import { useDebouncedPersist } from "./hooks/useDebouncedPersist";
 import { useTheme } from "./hooks/useTheme";
+import { useRoute } from "./hooks/useRoute";
+import { useBackdrop } from "./hooks/useBackdrop";
+import { Backdrop } from "./components/Backdrop";
+import { SettingsDialog } from "./components/SettingsDialog";
+import { FuseUndo } from "./components/bits/FuseUndo";
 import { TopBar } from "./components/TopBar";
 import { FilterBar } from "./components/FilterBar";
 import { Column } from "./components/Column";
 import { CardGhost } from "./components/Card";
 import { CardSheet } from "./components/CardSheet";
 import { WorkspaceSheet } from "./components/WorkspaceSheet";
+import { Home } from "./components/Home";
 import "./styles/app.css";
 
 interface Undo {
+  /** Mỗi lần xoá một id mới — nút hoàn tác gắn lại, ngòi cháy lại từ đầu. */
+  id: number;
   message: string;
   snapshot: AppState;
 }
+
+/** Cửa sổ hoàn tác: độ dài ngòi nổ trên nút "Hoàn tác". */
+const UNDO_MS = 6000;
+
+/** Thẻ đang mở gắn với workspace của nó — đổi bảng là tự thôi hiển thị. */
+interface OpenCard {
+  workspaceId: string;
+  cardId: string;
+}
+
+/** Bảng rỗng dùng chung khi đang ở trang workspace (giữ tham chiếu ổn định cho memo). */
+const NO_BOARD: Board = { columns: [], cards: {} };
 
 export default function App() {
   const [app, setApp] = useState<AppState>(loadApp);
   const [query, setQuery] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [openCardId, setOpenCardId] = useState<string | null>(null);
-  const [wsSheetOpen, setWsSheetOpen] = useState(false);
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
+  const [openCardRef, setOpenCardRef] = useState<OpenCard | null>(null);
+  const [wsSheetId, setWsSheetId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [composingColumn, setComposingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [undo, setUndo] = useState<Undo | null>(null);
-  const undoTimer = useRef<number>(0);
+  const undoSeq = useRef(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { mode, setMode } = useTheme();
+  const { backdrop, setBackdrop } = useBackdrop();
+  const { boardId: routeId, go, replace } = useRoute();
   useDebouncedPersist(STORAGE_KEY, app);
 
-  // Workspace đang mở. Bộ chuẩn hoá bảo đảm danh sách không bao giờ rỗng và
-  // activeId luôn trỏ vào một cái có thật, nên đây không thể là undefined.
-  const active = app.workspaces.find((w) => w.id === app.activeId) ?? app.workspaces[0];
-  const state = active;
+  /**
+   * Bảng đang xem, lấy từ địa chỉ. `undefined` = đang ở trang workspace.
+   * Địa chỉ là nguồn sự thật; app.activeId chỉ còn giữ cho đúng định dạng bản lưu.
+   */
+  const active = routeId ? app.workspaces.find((w) => w.id === routeId) : undefined;
+  const activeId = active?.id ?? null;
+  const state: Board = active ?? NO_BOARD;
+
+  // Địa chỉ trỏ tới workspace không còn (đã xoá, vừa nhập file khác): về trang workspace.
+  useEffect(() => {
+    if (routeId && !active) replace(null);
+  }, [routeId, active, replace]);
+
+  /**
+   * Tìm kiếm, bộ lọc, ô soạn cột thuộc về bảng cũ — đổi bảng thì bỏ hết.
+   * Làm ngay lúc render (mẫu "điều chỉnh state khi prop đổi") chứ không bằng
+   * effect, để không có khung hình nào vẽ bảng mới với bộ lọc của bảng cũ.
+   * Bắt được mọi đường đổi bảng: nút, phím tắt, lẫn nút Back của trình duyệt.
+   */
+  const [seenBoard, setSeenBoard] = useState<string | null>(null);
+  if (seenBoard !== activeId) {
+    setSeenBoard(activeId);
+    setQuery("");
+    setActiveTags([]);
+    setFlaggedOnly(false);
+    setComposingColumn(false);
+    setNewColumnTitle("");
+    // Rời bảng (kể cả bằng nút Back) thì đóng thẻ đang mở, để Forward không bật lại nó.
+    if (!activeId) setOpenCardRef(null);
+  }
 
   /** Sửa cột/thẻ của riêng workspace đang mở. */
-  const setBoard = useCallback((update: (w: Workspace) => Workspace) => {
-    setApp((prev) => ({
-      ...prev,
-      workspaces: prev.workspaces.map((w) => (w.id === prev.activeId ? update(w) : w)),
-    }));
-  }, []);
+  const setBoard = useCallback(
+    (update: (w: Workspace) => Workspace) => {
+      if (!activeId) return;
+      setApp((prev) => ({
+        ...prev,
+        workspaces: prev.workspaces.map((w) => (w.id === activeId ? update(w) : w)),
+      }));
+    },
+    [activeId]
+  );
 
   // Màu chủ đạo của workspace lan ra toàn trang: nền mesh, nút chính, tiêu điểm.
+  // Trang workspace không thuộc bảng nào nên về màu mặc định.
+  const accent = active?.accent;
   useEffect(() => {
-    document.documentElement.dataset.accent = active.accent;
-  }, [active.accent]);
+    const root = document.documentElement;
+    if (accent) root.dataset.accent = accent;
+    else delete root.dataset.accent;
+  }, [accent]);
 
   /* ------------------------- Kéo thả ------------------------- */
 
@@ -165,10 +223,10 @@ export default function App() {
 
   /* ------------------------ Thao tác dữ liệu ------------------------ */
 
+  /** Hết giờ do ngòi nổ trên nút hoàn tác quyết định (xem FuseUndo), không phải timer ở đây. */
   const flashUndo = useCallback((message: string, snapshot: AppState) => {
-    window.clearTimeout(undoTimer.current);
-    setUndo({ message, snapshot });
-    undoTimer.current = window.setTimeout(() => setUndo(null), 6000);
+    undoSeq.current += 1;
+    setUndo({ id: undoSeq.current, message, snapshot });
   }, []);
 
   function addCard(columnId: string, title: string) {
@@ -178,7 +236,16 @@ export default function App() {
       ...prev,
       cards: {
         ...prev.cards,
-        [id]: { id, title, note: "", color: "none", tags: [], createdAt: ts, updatedAt: ts },
+        [id]: {
+          id,
+          title,
+          note: "",
+          color: "none",
+          tags: [],
+          flagged: false,
+          createdAt: ts,
+          updatedAt: ts,
+        },
       },
       columns: prev.columns.map((c) =>
         c.id === columnId ? { ...c, cardIds: [...c.cardIds, id] } : c
@@ -193,10 +260,15 @@ export default function App() {
     }));
   }
 
+  function toggleFlag(id: string) {
+    const card = state.cards[id];
+    if (card) patchCard(id, { flagged: !card.flagged });
+  }
+
   function deleteCard(id: string) {
     const title = state.cards[id]?.title ?? "Thẻ";
     flashUndo(`Đã xoá "${truncate(title)}"`, app);
-    setOpenCardId(null);
+    setOpenCardRef(null);
     setBoard((prev) => {
       const cards = { ...prev.cards };
       delete cards[id];
@@ -248,23 +320,34 @@ export default function App() {
 
   /* -------------------------- Workspace -------------------------- */
 
-  /** Bộ lọc và thẻ đang mở thuộc về bảng cũ — đổi bảng thì bỏ hết. */
-  const switchWorkspace = useCallback((id: string) => {
-    setApp((prev) => (prev.activeId === id ? prev : { ...prev, activeId: id }));
-    setQuery("");
-    setActiveTags([]);
-    setOpenCardId(null);
-    setComposingColumn(false);
-  }, []);
+  /** Vào bảng của một workspace. Bộ lọc cũ tự bỏ nhờ khối "đổi bảng" ở trên. */
+  const openWorkspace = useCallback(
+    (id: string) => {
+      setWsSheetId(null);
+      go(id);
+    },
+    [go]
+  );
 
+  const goHome = useCallback(() => {
+    setOpenCardRef(null);
+    setWsSheetId(null);
+    go(null);
+  }, [go]);
+
+  /**
+   * Tạo xong mở luôn tấm tùy chỉnh để đặt tên ngay. Ở trang workspace thì ở
+   * lại đó (tấm mới hiện ra trong lưới); đang trong một bảng thì chuyển sang
+   * bảng mới — cùng kỳ vọng như trước khi có trang workspace.
+   */
   function createWorkspace() {
     const ws = makeWorkspace(`Workspace ${app.workspaces.length + 1}`, "🗂️", "blue", emptyBoard());
-    setApp((prev) => ({ ...prev, activeId: ws.id, workspaces: [...prev.workspaces, ws] }));
-    setQuery("");
-    setActiveTags([]);
-    setOpenCardId(null);
-    // Mở luôn tấm tùy chỉnh: đặt tên ngay lúc tạo, không phải đi tìm menu.
-    setWsSheetOpen(true);
+    setApp((prev) => ({ ...prev, workspaces: [...prev.workspaces, ws] }));
+    if (active) {
+      setOpenCardRef(null);
+      go(ws.id);
+    }
+    setWsSheetId(ws.id);
   }
 
   function patchWorkspace(id: string, patch: Partial<Workspace>) {
@@ -285,10 +368,10 @@ export default function App() {
         : `Đã xoá workspace "${truncate(ws.name)}"`,
       app
     );
-    setWsSheetOpen(false);
-    setOpenCardId(null);
-    setQuery("");
-    setActiveTags([]);
+    setWsSheetId(null);
+    setOpenCardRef(null);
+    // Xoá đúng bảng đang đứng thì về trang workspace, nơi thấy được mọi bảng còn lại.
+    if (id === activeId) go(null);
     setApp((prev) => {
       const workspaces = prev.workspaces.filter((w) => w.id !== id);
       return {
@@ -299,7 +382,7 @@ export default function App() {
     });
   }
 
-  // Ctrl/Cmd + 1..9 nhảy thẳng tới workspace thứ n.
+  // Ctrl/Cmd + 1..9 nhảy thẳng tới bảng của workspace thứ n, từ bất kỳ trang nào.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
@@ -308,11 +391,11 @@ export default function App() {
       const target = app.workspaces[n - 1];
       if (!target) return;
       e.preventDefault();
-      switchWorkspace(target.id);
+      openWorkspace(target.id);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [app.workspaces, switchWorkspace]);
+  }, [app.workspaces, openWorkspace]);
 
   /* --------------------- Sao lưu / khôi phục --------------------- */
 
@@ -335,9 +418,8 @@ export default function App() {
         return;
       }
       flashUndo("Đã nhập dữ liệu từ file", app);
-      setQuery("");
-      setActiveTags([]);
-      setOpenCardId(null);
+      setOpenCardRef(null);
+      setWsSheetId(null);
       setApp(parsed);
     } catch {
       window.alert("Không đọc được file. Hãy chọn đúng file .json đã xuất từ ứng dụng.");
@@ -346,10 +428,12 @@ export default function App() {
 
   /** Chỉ đặt lại bảng đang mở — các workspace khác không bị đụng tới. */
   function resetBoard() {
+    if (!active) return;
     flashUndo(`Đã đặt lại "${truncate(active.name)}" về dữ liệu mẫu`, app);
     setQuery("");
     setActiveTags([]);
-    setOpenCardId(null);
+    setFlaggedOnly(false);
+    setOpenCardRef(null);
     setBoard((prev) => ({ ...prev, ...sampleBoard() }));
   }
 
@@ -375,10 +459,16 @@ export default function App() {
     [activeTags, allTags]
   );
 
-  const filtering = query.trim() !== "" || effectiveTags.length > 0;
+  const flaggedCount = useMemo(
+    () => Object.values(state.cards).filter((c) => c.flagged).length,
+    [state.cards]
+  );
+
+  const filtering = query.trim() !== "" || effectiveTags.length > 0 || flaggedOnly;
 
   const matches = useCallback(
     (card: CardItem) => {
+      if (flaggedOnly && !card.flagged) return false;
       const q = query.trim().toLowerCase();
       if (q) {
         const haystack = `${card.title} ${card.note} ${card.tags.join(" ")}`.toLowerCase();
@@ -389,7 +479,7 @@ export default function App() {
         card.tags.some((ct) => ct.toLowerCase() === t.toLowerCase())
       );
     },
-    [query, effectiveTags]
+    [query, effectiveTags, flaggedOnly]
   );
 
   const columns = useMemo(
@@ -405,154 +495,216 @@ export default function App() {
 
   const totalCards = Object.keys(state.cards).length;
   const visibleCards = columns.reduce((n, c) => n + c.cards.length, 0);
+  const openCardId = openCardRef?.workspaceId === activeId ? openCardRef.cardId : null;
   const openCard = openCardId ? state.cards[openCardId] : null;
+  const setOpenCardId = useCallback(
+    (cardId: string | null) =>
+      setOpenCardRef(cardId && activeId ? { workspaceId: activeId, cardId } : null),
+    [activeId]
+  );
   const draggingCard = draggingId ? state.cards[draggingId] : null;
   const openCardColumn = openCardId
     ? (state.columns.find((c) => c.cardIds.includes(openCardId))?.title ?? "—")
     : "";
+  const sheetWorkspace = wsSheetId ? app.workspaces.find((w) => w.id === wsSheetId) : undefined;
 
-  useEffect(() => () => window.clearTimeout(undoTimer.current), []);
-
-  return (
-    <div className="app">
-      <TopBar
-        query={query}
-        onQuery={setQuery}
-        theme={mode}
-        onTheme={setMode}
-        onExport={exportBackup}
-        onImport={importBackup}
-        onReset={resetBoard}
-        cardCount={filtering ? visibleCards : totalCards}
-        workspaces={app.workspaces}
-        activeId={active.id}
-        onSwitchWorkspace={switchWorkspace}
-        onCreateWorkspace={createWorkspace}
-        onCustomizeWorkspace={() => {
-          setOpenCardId(null);
-          setWsSheetOpen(true);
-        }}
-      />
-
-      <FilterBar
-        allTags={allTags}
-        activeTags={effectiveTags}
-        onToggle={(tag) =>
-          setActiveTags((prev) =>
-            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-          )
-        }
-        onClear={() => setActiveTags([])}
-      />
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-        onDragCancel={endDrag}
-      >
-        <main className="board">
-          {columns.map(({ column, cards }) => (
-            <Column
-              key={column.id}
-              column={column}
-              cards={cards}
-              filtering={filtering}
-              onAddCard={addCard}
-              onOpenCard={setOpenCardId}
-              onRenameColumn={renameColumn}
-              onDeleteColumn={deleteColumn}
-            />
-          ))}
-
-          <div className="add-column">
-            {composingColumn ? (
-              <div className="composer">
-                <input
-                  autoFocus
-                  value={newColumnTitle}
-                  maxLength={40}
-                  placeholder="Tên cột..."
-                  aria-label="Tên cột mới"
-                  onChange={(e) => setNewColumnTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") addColumn();
-                    if (e.key === "Escape") {
-                      setNewColumnTitle("");
-                      setComposingColumn(false);
-                    }
-                  }}
-                />
-                <div className="composer-actions">
-                  <button
-                    className="btn btn-primary"
-                    onClick={addColumn}
-                    disabled={!newColumnTitle.trim()}
-                  >
-                    Thêm cột
-                  </button>
-                  <button
-                    className="btn btn-quiet"
-                    onClick={() => {
-                      setNewColumnTitle("");
-                      setComposingColumn(false);
-                    }}
-                  >
-                    Huỷ
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button className="add-btn" onClick={() => setComposingColumn(true)}>
-                + Thêm cột
-              </button>
-            )}
-          </div>
-        </main>
-
-        <DragOverlay dropAnimation={null}>
-          {draggingCard ? <CardGhost card={draggingCard} /> : null}
-        </DragOverlay>
-      </DndContext>
-
-      {openCard && (
-        <CardSheet
-          card={openCard}
-          columnTitle={openCardColumn}
-          allTags={allTags}
-          onPatch={patchCard}
-          onDelete={deleteCard}
-          onClose={() => setOpenCardId(null)}
-        />
-      )}
-
-      {wsSheetOpen && (
+  /** Tấm tùy chỉnh workspace và toast hoàn tác dùng chung cho cả hai trang. */
+  const overlays = (
+    <>
+      {sheetWorkspace && (
         <WorkspaceSheet
-          workspace={active}
+          key={sheetWorkspace.id}
+          workspace={sheetWorkspace}
           canDelete={app.workspaces.length > 1}
           onPatch={patchWorkspace}
           onDelete={deleteWorkspace}
-          onClose={() => setWsSheetOpen(false)}
+          onClose={() => setWsSheetId(null)}
+        />
+      )}
+
+      {settingsOpen && (
+        <SettingsDialog
+          backdrop={backdrop}
+          onBackdrop={setBackdrop}
+          theme={mode}
+          onTheme={setMode}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
 
       {undo && (
         <div className="toast" role="status">
           <p>{undo.message}</p>
-          <button
-            onClick={() => {
+          <FuseUndo
+            key={undo.id}
+            duration={UNDO_MS}
+            color="var(--ink)"
+            background="var(--accent-wash)"
+            fuseColor="var(--accent)"
+            onUndo={() => {
               setApp(undo.snapshot);
               setUndo(null);
-              window.clearTimeout(undoTimer.current);
             }}
-          >
-            Hoàn tác
-          </button>
+            onExpire={() => setUndo((u) => (u?.id === undo.id ? null : u))}
+          />
         </div>
       )}
-    </div>
+    </>
+  );
+
+  // Nền nằm cùng một vị trí trong cây ở cả hai trang, nên đổi trang không gỡ ra
+  // gắn lại — WebGL của nền kim loại lỏng không phải khởi tạo lại mỗi lần.
+  const backdropLayer = <Backdrop kind={backdrop} paused={draggingId !== null} />;
+  const openSettings = () => setSettingsOpen(true);
+
+  if (!active) {
+    return (
+      <>
+        {backdropLayer}
+        <div className="app">
+          <Home
+            workspaces={app.workspaces}
+            onOpenSettings={openSettings}
+            onExport={exportBackup}
+            onImport={importBackup}
+            onOpen={openWorkspace}
+            onCreate={createWorkspace}
+            onCustomize={setWsSheetId}
+            onDelete={deleteWorkspace}
+          />
+          {overlays}
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {backdropLayer}
+      <div className="app">
+        <TopBar
+          query={query}
+          onQuery={setQuery}
+          onOpenSettings={openSettings}
+          onExport={exportBackup}
+          onImport={importBackup}
+          onReset={resetBoard}
+          cardCount={filtering ? visibleCards : totalCards}
+          workspaces={app.workspaces}
+          activeId={active.id}
+          onHome={goHome}
+          onSwitchWorkspace={openWorkspace}
+          onCreateWorkspace={createWorkspace}
+          onCustomizeWorkspace={() => {
+            setOpenCardRef(null);
+            setWsSheetId(active.id);
+          }}
+        />
+
+        <FilterBar
+          allTags={allTags}
+          activeTags={effectiveTags}
+          onToggle={(tag) =>
+            setActiveTags((prev) =>
+              prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+            )
+          }
+          flaggedCount={flaggedCount}
+          flaggedOnly={flaggedOnly}
+          onToggleFlagged={() => setFlaggedOnly((v) => !v)}
+          onClear={() => {
+            setActiveTags([]);
+            setFlaggedOnly(false);
+          }}
+        />
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+          onDragCancel={endDrag}
+        >
+          <main className="board">
+            {columns.map(({ column, cards }) => (
+              <Column
+                key={column.id}
+                column={column}
+                cards={cards}
+                filtering={filtering}
+                onAddCard={addCard}
+                onOpenCard={setOpenCardId}
+                onToggleFlag={toggleFlag}
+                onRenameColumn={renameColumn}
+                onDeleteColumn={deleteColumn}
+              />
+            ))}
+
+            <div className="add-column">
+              {composingColumn ? (
+                <div className="composer">
+                  <input
+                    autoFocus
+                    value={newColumnTitle}
+                    maxLength={40}
+                    placeholder="Tên cột..."
+                    aria-label="Tên cột mới"
+                    onChange={(e) => setNewColumnTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") addColumn();
+                      if (e.key === "Escape") {
+                        setNewColumnTitle("");
+                        setComposingColumn(false);
+                      }
+                    }}
+                  />
+                  <div className="composer-actions">
+                    <button
+                      className="btn btn-primary"
+                      onClick={addColumn}
+                      disabled={!newColumnTitle.trim()}
+                    >
+                      Thêm cột
+                    </button>
+                    <button
+                      className="btn btn-quiet"
+                      onClick={() => {
+                        setNewColumnTitle("");
+                        setComposingColumn(false);
+                      }}
+                    >
+                      Huỷ
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button className="add-btn" onClick={() => setComposingColumn(true)}>
+                  + Thêm cột
+                </button>
+              )}
+            </div>
+          </main>
+
+          <DragOverlay dropAnimation={null}>
+            {draggingCard ? <CardGhost card={draggingCard} /> : null}
+          </DragOverlay>
+        </DndContext>
+
+        {openCard && (
+          <CardSheet
+            card={openCard}
+            columnTitle={openCardColumn}
+            allTags={allTags}
+            onPatch={patchCard}
+            onDelete={deleteCard}
+            onClose={() => setOpenCardId(null)}
+          />
+        )}
+
+        {overlays}
+      </div>
+    </>
   );
 }
 

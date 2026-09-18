@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { Workspace } from "../types";
-import { IconCheck, IconChevronDown, IconPlus, IconSliders } from "./Icons";
+import { IconCheck, IconChevronDown, IconPlus, IconSliders, IconWorkspaces } from "./Icons";
 
 interface Props {
   workspaces: Workspace[];
   activeId: string;
+  onHome: () => void;
   onSwitch: (id: string) => void;
   onCreate: () => void;
   onCustomize: () => void;
@@ -17,6 +18,7 @@ interface Props {
 export function WorkspaceSwitcher({
   workspaces,
   activeId,
+  onHome,
   onSwitch,
   onCreate,
   onCustomize,
@@ -87,6 +89,16 @@ export function WorkspaceSwitcher({
 
           <hr />
 
+          <button
+            role="menuitem"
+            onClick={() => {
+              onHome();
+              setOpen(false);
+            }}
+          >
+            <IconWorkspaces size={16} />
+            Tất cả workspace
+          </button>
           <button
             role="menuitem"
             onClick={() => {

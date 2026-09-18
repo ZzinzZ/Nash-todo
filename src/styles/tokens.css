@@ -60,6 +60,15 @@
   --accent-wash: oklch(var(--a-l) var(--a-c) var(--a-h) / 0.14);
   --danger: oklch(0.53 0.2 25);
   --danger-wash: oklch(0.53 0.2 25 / 0.13);
+  --ink-on-danger: oklch(1 0 0);
+
+  /* --- Chú ý: thẻ đánh dấu quan trọng. Một sắc hổ phách cố định, KHÔNG theo
+         màu workspace: việc quan trọng phải trông giống nhau ở mọi bảng, kể cả
+         khi cùng hiện trên trang workspace. --attn cho viền/biểu tượng (>= 3:1),
+         --attn-ink cho chữ (>= 4.5:1). --- */
+  --attn: oklch(0.66 0.16 65);
+  --attn-ink: oklch(0.5 0.12 62);
+  --attn-wash: oklch(0.8 0.15 75 / 0.2);
 
   /* --- Hạt giống màu thẻ. Độc lập với màu workspace: màu thẻ là cách người
          dùng tự phân loại, đổi workspace không được làm nó nhảy sắc. --- */
@@ -157,6 +166,10 @@
     --ink-on-accent: oklch(0.18 0.02 265);
     --danger: oklch(0.7 0.17 25);
     --danger-wash: oklch(0.7 0.17 25 / 0.18);
+    --ink-on-danger: oklch(0.18 0.02 265);
+    --attn: oklch(0.8 0.15 75);
+    --attn-ink: oklch(0.86 0.12 80);
+    --attn-wash: oklch(0.8 0.15 75 / 0.14);
 
     --seed-red: oklch(0.7 0.17 25);
     --seed-orange: oklch(0.76 0.14 55);
@@ -209,6 +222,10 @@
   --ink-on-accent: oklch(0.18 0.02 265);
   --danger: oklch(0.7 0.17 25);
   --danger-wash: oklch(0.7 0.17 25 / 0.18);
+  --ink-on-danger: oklch(0.18 0.02 265);
+  --attn: oklch(0.8 0.15 75);
+  --attn-ink: oklch(0.86 0.12 80);
+  --attn-wash: oklch(0.8 0.15 75 / 0.14);
 
   --seed-red: oklch(0.7 0.17 25);
   --seed-orange: oklch(0.76 0.14 55);

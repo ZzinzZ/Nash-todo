@@ -1,76 +1,41 @@
-import { useEffect, useRef, useState } from "react";
-import type { ThemeMode, Workspace } from "../types";
+import { useEffect, useRef } from "react";
+import type { Workspace } from "../types";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
-import {
-  IconCheck,
-  IconClose,
-  IconDownload,
-  IconMonitor,
-  IconMoon,
-  IconMore,
-  IconSearch,
-  IconSun,
-  IconUpload,
-} from "./Icons";
+import { SettingsMenu } from "./SettingsMenu";
+import { IconClose, IconSearch, IconWorkspaces } from "./Icons";
 
 interface Props {
   query: string;
   onQuery: (q: string) => void;
-  theme: ThemeMode;
-  onTheme: (m: ThemeMode) => void;
+  onOpenSettings: () => void;
   onExport: () => void;
   onImport: (file: File) => void;
   onReset: () => void;
   cardCount: number;
   workspaces: Workspace[];
   activeId: string;
+  onHome: () => void;
   onSwitchWorkspace: (id: string) => void;
   onCreateWorkspace: () => void;
   onCustomizeWorkspace: () => void;
 }
 
-const THEME_LABEL: Record<ThemeMode, string> = {
-  system: "Theo hệ thống",
-  light: "Sáng",
-  dark: "Tối",
-};
-
 export function TopBar({
   query,
   onQuery,
-  theme,
-  onTheme,
+  onOpenSettings,
   onExport,
   onImport,
   onReset,
   cardCount,
   workspaces,
   activeId,
+  onHome,
   onSwitchWorkspace,
   onCreateWorkspace,
   onCustomizeWorkspace,
 }: Props) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuWrap = useRef<HTMLDivElement>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
-
-  // Đóng menu khi bấm ra ngoài hoặc nhấn Escape.
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onDown(e: MouseEvent) {
-      if (!menuWrap.current?.contains(e.target as Node)) setMenuOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
 
   // "/" đưa con trỏ vào ô tìm kiếm, trừ khi đang gõ ở chỗ khác.
   useEffect(() => {
@@ -89,13 +54,20 @@ export function TopBar({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const ThemeIcon = theme === "light" ? IconSun : theme === "dark" ? IconMoon : IconMonitor;
-
   return (
     <header className="topbar">
+      <button
+        className="icon-btn"
+        aria-label="Về trang tất cả workspace"
+        title="Tất cả workspace"
+        onClick={onHome}
+      >
+        <IconWorkspaces size={18} />
+      </button>
       <WorkspaceSwitcher
         workspaces={workspaces}
         activeId={activeId}
+        onHome={onHome}
         onSwitch={onSwitchWorkspace}
         onCreate={onCreateWorkspace}
         onCustomize={onCustomizeWorkspace}
@@ -126,93 +98,12 @@ export function TopBar({
         )}
       </div>
 
-      <div className="menu-wrap" ref={menuWrap}>
-        <button
-          className="icon-btn"
-          aria-label={`Cài đặt. Giao diện: ${THEME_LABEL[theme]}`}
-          aria-expanded={menuOpen}
-          aria-haspopup="menu"
-          onClick={() => setMenuOpen((v) => !v)}
-        >
-          <IconMore />
-        </button>
-
-        {menuOpen && (
-          <div className="menu" role="menu">
-            {(["system", "light", "dark"] as const).map((mode) => {
-              const Icon = mode === "light" ? IconSun : mode === "dark" ? IconMoon : IconMonitor;
-              return (
-                <button
-                  key={mode}
-                  role="menuitemradio"
-                  aria-checked={theme === mode}
-                  onClick={() => onTheme(mode)}
-                >
-                  <Icon size={16} />
-                  {THEME_LABEL[mode]}
-                  {theme === mode && (
-                    <span style={{ marginLeft: "auto" }}>
-                      <IconCheck size={14} />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-
-            <hr />
-
-            <button
-              role="menuitem"
-              onClick={() => {
-                onExport();
-                setMenuOpen(false);
-              }}
-            >
-              <IconDownload size={16} />
-              Xuất sao lưu (mọi workspace)
-            </button>
-            <button role="menuitem" onClick={() => fileInput.current?.click()}>
-              <IconUpload size={16} />
-              Nhập từ file sao lưu
-            </button>
-
-            <hr />
-
-            <button
-              role="menuitem"
-              onClick={() => {
-                onReset();
-                setMenuOpen(false);
-              }}
-            >
-              <IconClose size={16} />
-              Đặt lại workspace này
-            </button>
-          </div>
-        )}
-
-        <input
-          ref={fileInput}
-          type="file"
-          accept="application/json,.json"
-          className="sr-only"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) onImport(file);
-            e.target.value = "";
-            setMenuOpen(false);
-          }}
-        />
-      </div>
-
-      <button
-        className="icon-btn"
-        aria-label={`Đổi giao diện. Đang dùng: ${THEME_LABEL[theme]}`}
-        title={`Giao diện: ${THEME_LABEL[theme]}`}
-        onClick={() => onTheme(theme === "system" ? "light" : theme === "light" ? "dark" : "system")}
-      >
-        <ThemeIcon />
-      </button>
+      <SettingsMenu
+        onOpenSettings={onOpenSettings}
+        onExport={onExport}
+        onImport={onImport}
+        onReset={onReset}
+      />
     </header>
   );
 }

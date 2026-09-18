@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import { CARD_COLORS, COLOR_LABELS, type CardColor, type CardItem } from "../types";
 import { TagInput } from "./TagInput";
-import { IconCheck, IconClose, IconTrash } from "./Icons";
+import { DeleteHold } from "./DeleteHold";
+import { IconCheck, IconClose, IconFlag } from "./Icons";
 
 interface Props {
   card: CardItem;
@@ -67,6 +68,23 @@ export function CardSheet({ card, columnTitle, allTags, onPatch, onDelete, onClo
         </header>
 
         <div className="sheet-body">
+          <button
+            type="button"
+            className="flag-toggle"
+            aria-pressed={card.flagged}
+            onClick={() => onPatch(card.id, { flagged: !card.flagged })}
+          >
+            <IconFlag size={17} filled={card.flagged} />
+            <span className="flag-toggle-text">
+              <strong>{card.flagged ? "Đang đánh dấu quan trọng" : "Đánh dấu quan trọng"}</strong>
+              <span>
+                {card.flagged
+                  ? "Thẻ nổi bật trên bảng và hiện ở trang workspace."
+                  : "Cho thẻ nổi bật để không bỏ sót."}
+              </span>
+            </span>
+          </button>
+
           <div className="field">
             <label htmlFor="card-title">Tiêu đề</label>
             <input
@@ -120,10 +138,7 @@ export function CardSheet({ card, columnTitle, allTags, onPatch, onDelete, onClo
         </div>
 
         <footer className="sheet-footer">
-          <button className="btn btn-danger" onClick={() => onDelete(card.id)}>
-            <IconTrash size={15} />
-            Xoá thẻ
-          </button>
+          <DeleteHold label="Giữ để xoá thẻ" onDelete={() => onDelete(card.id)} />
           <span className="spacer" />
           <button className="btn btn-primary" onClick={onClose}>
             <IconCheck size={15} />

@@ -24,11 +24,23 @@ chỗ do người dùng điều khiển: màu thẻ và nền.
 
 Toàn bộ token viết bằng OKLCH.
 
-### Nền (backdrop mesh)
+### Nền (hình nền, chọn trong popup cài đặt)
 
-Ba vệt tròn `radial-gradient` phủ `filter: blur(...)`, trôi bằng `transform` trong chu kỳ
-55–85 giây. Sáng: lam / lục lam / tím nhạt ở L cao. Tối: chàm / lục lam / tím ở L thấp.
-Đây là nguồn màu duy nhất cho kính khúc xạ.
+Hai lựa chọn, chuyển thể từ React Bits (`src/components/bits/`):
+
+- **Lưới chấm** (Dot Field, mặc định) — canvas 2D, chấm phồng lên quanh con trỏ. Dưới lưới
+  có ba vệt màu loang tĩnh, vì chấm thôi thì kính không có gì để khúc xạ. Tự ngủ khi chuột
+  đứng yên: không vẽ lại khung hình giống hệt.
+- **Kim loại lỏng** (Molten Metal) — shader WebGL, dải màu trôi chậm (speed 0.16). Nặng hơn.
+
+Cả hai lấy màu từ token `--mesh-1/2/3` và `--mesh-base` (đọc qua `getComputedStyle` rồi đổi
+sang RGB, xem `lib/color.ts`), nghe thay đổi `data-theme` / `data-accent` trên `<html>`.
+Nên đổi hình nền không đổi dải sáng tối phía sau kính — các con số tương phản vẫn giữ.
+Trong bản Molten Metal đã bỏ vệt tối ở gờ (nhân 0.72) của chế độ sáng vì nó kéo nền xuống
+tối hơn bảng màu token.
+
+Lựa chọn lưu trong `localStorage` (`personal-board.backdrop`). Đổi trang không gỡ nền ra gắn
+lại, nên WebGL không phải khởi tạo lại.
 
 ### Bề mặt kính
 
@@ -92,6 +104,16 @@ chàm 285 · tím 320
 
 Màu **không bao giờ là kênh thông tin duy nhất**: tag luôn là chữ đọc được kèm theo.
 
+### Chú ý (thẻ quan trọng)
+
+`--attn` (viền, biểu tượng, >= 3:1) · `--attn-ink` (chữ, >= 4.5:1) · `--attn-wash` (nền nhạt).
+Một sắc hổ phách **cố định**, không theo màu workspace: việc quan trọng phải trông giống
+nhau ở mọi bảng, không đổi sắc khi chuyển workspace. Đây là trạng thái
+hệ thống, tách khỏi màu thẻ (do người dùng gán) — hai kênh không dẫm lên nhau.
+
+Thẻ đánh dấu nổi lên bằng ba kênh cùng lúc: cờ đặc ở góc (hình), viền hổ phách (nét), quầng
+ấm ở góc (màu). Không tự sắp lên đầu cột — thứ tự thủ công của người dùng được giữ nguyên.
+
 ## Typography
 
 Một họ chữ duy nhất — system stack (`Segoe UI Variable` trên Windows 11, `SF Pro` trên
@@ -130,6 +152,21 @@ của UI dày đặc:
 
 Mọi điều khiển có đủ: mặc định · hover · focus-visible · active · disabled.
 
+- **Nút xoá = nhấn giữ** (Hold Button). Màu đỏ dâng dần; nhả tay trước là huỷ. Bấm nhả
+  nhanh thì hiện bong bóng "Giữ 0,9 giây để xoá". Đây là thay cho hộp thoại xác nhận, không
+  phải thêm vào: giữ ngắn (0,9 giây; workspace 1,3 giây) vì phía sau vẫn còn hoàn tác.
+  Dùng chung qua `DeleteHold` để mọi nút xoá trông như nhau.
+- **Nút hoàn tác = ngòi nổ** (Fuse Button, bản `FuseUndo`). Ngòi cháy quanh viền nút trong
+  6 giây — thời gian còn lại nhìn thấy được thay vì một đồng hồ vô hình. Rê chuột vào là
+  ngòi dừng. Nút không cướp tiêu điểm khi xuất hiện.
+- **Thẻ workspace vuốt được** (Swipe Row). Vuốt trái lộ ngăn **Tùy chỉnh** và **Xoá**;
+  vuốt hết đà là xoá luôn (có hoàn tác). Nút **⋯** ở mép phải thẻ mở cùng ngăn đó cho người dùng
+  chuột; mở bằng bàn phím thì tiêu điểm vào thao tác đầu. Vừa vuốt xong thì cú click lỡ tay
+  không tính là "mở bảng". Workspace cuối cùng không có nút xoá.
+- **Popup cài đặt giao diện**: modal giữa màn hình là ngoại lệ có chủ ý — cài đặt chung
+  không thuộc ngữ cảnh bảng nào. Lớp phủ nhạt, không làm mờ, để thấy ngay hình nền phía sau
+  đổi theo lựa chọn.
+
 - **Thẻ**: kính trắng có blur nền, vệt sáng chéo, gờ sáng mép trên, vệt màu phân loại ở
   mép dưới, tag pill, xem trước ghi chú 2 dòng. Bóng rất nhẹ và khuếch tán để thẻ tách
   khỏi khay chứ không để trông nặng. Hover nâng 1px và tăng độ đục.
@@ -140,6 +177,13 @@ Mọi điều khiển có đủ: mặc định · hover · focus-visible · acti
   trong 6 giây — đây là lý do không cần bước "bạn có chắc không".
 
 ## Workspace
+
+**Trang workspace là cửa vào.** Mở ứng dụng thấy mọi workspace, mỗi cái một thẻ kính nằm
+ngang (cao 72px) chỉ có biểu tượng và tên — cố ý không bày số liệu hay việc ra đây: trang
+này chỉ để chọn bảng, mọi thứ khác ở trong bảng. Màu chủ đạo của workspace nằm ở ô biểu
+tượng và một quầng mỏng bên trái thẻ. Trang này không thuộc bảng nào nên nền về màu mặc định.
+
+Định tuyến bằng hash (`#/` và `#/w/<id>`): nút Back đưa về trang workspace, F5 giữ bảng.
 
 Nhiều bảng độc lập trong cùng một ứng dụng, mỗi bảng là một mảng việc riêng. Mỗi
 workspace tự mang tên, một emoji, và một màu chủ đạo.
@@ -159,9 +203,10 @@ không chuỗi hoạt hoạ khi tải trang.
 Chuyển động chỉ mang trạng thái: thẻ nâng khi hover, tấm trượt vào/ra, toast xuất hiện,
 thẻ nghiêng nhẹ khi đang kéo.
 
-**Quy tắc nhường đường (yêu cầu trực tiếp của người dùng):** khi bắt đầu kéo thẻ, đặt
-`data-dragging` trên `<html>` → nền dừng chuyển động và độ blur của kính giảm. Toàn bộ
-ngân sách GPU dồn cho thao tác kéo. Trả lại khi thả.
+**Quy tắc nhường đường (yêu cầu trực tiếp của người dùng):** khi bắt đầu kéo thẻ, hình nền
+nhận `paused` (dừng vòng vẽ, giữ một khung tĩnh) và `<html>` nhận `data-dragging` → độ blur
+của kính giảm. Toàn bộ ngân sách GPU dồn cho thao tác kéo. Trả lại khi thả.
 
-`prefers-reduced-motion: reduce` → nền đứng yên hoàn toàn, mọi chuyển cảnh còn ≤ 1ms.
+`prefers-reduced-motion: reduce` → hình nền đứng yên hoàn toàn (vẽ một khung tĩnh), mọi
+chuyển cảnh còn ≤ 1ms.
 `prefers-reduced-transparency: reduce` → kính thành nền đặc, bố cục giữ nguyên.

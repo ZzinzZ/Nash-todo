@@ -3,7 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useDroppable } from "@dnd-kit/core";
 import type { CardItem, ColumnItem } from "../types";
 import { Card } from "./Card";
-import { IconTrash } from "./Icons";
+import { DeleteHold } from "./DeleteHold";
 
 interface Props {
   column: ColumnItem;
@@ -12,6 +12,7 @@ interface Props {
   filtering: boolean;
   onAddCard: (columnId: string, title: string) => void;
   onOpenCard: (id: string) => void;
+  onToggleFlag: (id: string) => void;
   onRenameColumn: (columnId: string, title: string) => void;
   onDeleteColumn: (columnId: string) => void;
 }
@@ -22,6 +23,7 @@ export function Column({
   filtering,
   onAddCard,
   onOpenCard,
+  onToggleFlag,
   onRenameColumn,
   onDeleteColumn,
 }: Props) {
@@ -91,20 +93,18 @@ export function Column({
           </h2>
         )}
         <span className="count">{cards.length}</span>
-        <button
-          className="icon-btn icon-btn-sm"
-          aria-label={`Xoá cột ${column.title}`}
-          title="Xoá cột"
-          onClick={() => onDeleteColumn(column.id)}
-        >
-          <IconTrash size={15} />
-        </button>
+        <DeleteHold
+          compact
+          label={`Giữ để xoá cột ${column.title}`}
+          title="Giữ để xoá cột"
+          onDelete={() => onDeleteColumn(column.id)}
+        />
       </header>
 
       <div className="column-body" ref={setNodeRef}>
         <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
-            <Card key={card.id} card={card} onOpen={onOpenCard} />
+            <Card key={card.id} card={card} onOpen={onOpenCard} onToggleFlag={onToggleFlag} />
           ))}
         </SortableContext>
 

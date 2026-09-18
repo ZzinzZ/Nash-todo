@@ -5,7 +5,8 @@ import {
   WORKSPACE_ICONS,
   type Workspace,
 } from "../types";
-import { IconCheck, IconClose, IconTrash } from "./Icons";
+import { IconCheck, IconClose } from "./Icons";
+import { DeleteHold } from "./DeleteHold";
 
 interface Props {
   workspace: Workspace;
@@ -122,15 +123,14 @@ export function WorkspaceSheet({ workspace, canDelete, onPatch, onDelete, onClos
         </div>
 
         <footer className="sheet-footer">
-          <button
-            className="btn btn-danger"
+          {/* Mất cả một bảng nặng hơn mất một thẻ — giữ lâu hơn một nhịp. */}
+          <DeleteHold
+            label="Giữ để xoá workspace"
+            holdTime={1300}
             disabled={!canDelete}
-            title={canDelete ? "Xoá workspace" : "Phải còn ít nhất một workspace"}
-            onClick={() => onDelete(workspace.id)}
-          >
-            <IconTrash size={15} />
-            Xoá workspace
-          </button>
+            title={canDelete ? undefined : "Phải còn ít nhất một workspace"}
+            onDelete={() => onDelete(workspace.id)}
+          />
           <span className="spacer" />
           <button className="btn btn-primary" onClick={onClose}>
             <IconCheck size={15} />

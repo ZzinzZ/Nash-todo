@@ -121,3 +121,28 @@ export const IconFilter = ({ size = 15 }: IconProps) => (
     <path d="M3.2 4.8h13.6L11.6 11v4.4l-3.2 1.6V11Z" />
   </svg>
 );
+
+/** Cờ đánh dấu quan trọng. `filled` khi đang bật — hình dạng đổi, không chỉ màu. */
+export const IconFlag = ({ size = 16, filled = false }: IconProps & { filled?: boolean }) => (
+  <svg {...base(size)}>
+    <path d="M4.5 17V3.8" />
+    <path
+      d="M4.5 3.8h9.6l-2.2 3.6 2.2 3.6H4.5"
+      fill={filled ? "currentColor" : "none"}
+    />
+  </svg>
+);
+
+export const IconUndo = ({ size = 16 }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M7.5 5 4 8.5 7.5 12" />
+    <path d="M4 8.5h7.5a4.5 4.5 0 0 1 0 9H9" />
+  </svg>
+);
+
+export const IconSettings = ({ size = 17 }: IconProps) => (
+  <svg {...base(size)}>
+    <circle cx="10" cy="10" r="2.6" />
+    <path d="M10 2.8v2M10 15.2v2M17.2 10h-2M4.8 10h-2M15.1 4.9l-1.4 1.4M6.3 13.7l-1.4 1.4M15.1 15.1l-1.4-1.4M6.3 6.3 4.9 4.9" />
+  </svg>
+);

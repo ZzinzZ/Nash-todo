@@ -14,6 +14,7 @@ export const STORAGE_KEY = "personal-board.state.v3";
 export const LEGACY_KEY_V2 = "personal-board.state.v2";
 export const LEGACY_KEY_V1 = "personal-board.state.v1";
 export const THEME_KEY = "personal-board.theme";
+export const BACKDROP_KEY = "personal-board.backdrop";
 
 const now = Date.now();
 
@@ -22,9 +23,10 @@ function seedCard(
   title: string,
   note: string,
   color: CardColor,
-  tags: string[]
+  tags: string[],
+  flagged = false
 ): CardItem {
-  return { id, title, note, color, tags, createdAt: now, updatedAt: now };
+  return { id, title, note, color, tags, flagged, createdAt: now, updatedAt: now };
 }
 
 /** Bảng mẫu — cũng là bảng của workspace đầu tiên khi mở lần đầu. */
@@ -41,7 +43,8 @@ export function sampleBoard(): Board {
         "Quay video review sản phẩm A",
         "Kịch bản 15s: hook 3s → demo 8s → CTA 4s.\nNhớ gắn link ở bio trước khi đăng.",
         "blue",
-        ["TikTok", "Quay"]
+        ["TikTok", "Quay"],
+        true
       ),
       "card-2": seedCard(
         "card-2",
@@ -116,6 +119,8 @@ export function normalizeBoard(raw: unknown): Board {
         tags: Array.isArray(c.tags)
           ? c.tags.filter((t): t is string => typeof t === "string" && t.trim() !== "")
           : [],
+        // Bản lưu cũ chưa có trường này: coi như chưa đánh dấu.
+        flagged: c.flagged === true,
         createdAt: created,
         updatedAt: typeof c.updatedAt === "number" ? c.updatedAt : created,
       };

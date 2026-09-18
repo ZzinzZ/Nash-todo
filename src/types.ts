@@ -30,6 +30,8 @@ export interface CardItem {
   note: string;
   color: CardColor;
   tags: string[];
+  /** Đánh dấu quan trọng — việc cần để mắt tới, nổi lên cả ở trang workspace. */
+  flagged: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -100,3 +102,7 @@ export interface LegacyBoardState {
 }
 
 export type ThemeMode = "system" | "light" | "dark";
+
+/** Hình nền của cả trang. Cả hai đều lấy màu từ theme và màu chủ đạo của workspace. */
+export const BACKDROPS = ["dots", "molten"] as const;
+export type BackdropKind = (typeof BACKDROPS)[number];
