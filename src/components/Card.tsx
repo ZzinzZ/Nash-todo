@@ -88,11 +88,12 @@ export function CardGhost({ card }: { card: CardItem }) {
 }
 
 function CardFace({ card }: { card: CardItem }) {
+  const created = new Date(card.createdAt);
   return (
     <>
       <div className="card-title">{card.title}</div>
       {card.note.trim() && <div className="card-note">{card.note}</div>}
-      {card.tags.length > 0 && (
+      <div className="card-foot">
         <div className="card-tags">
           {card.tags.map((tag) => (
             <span className="tag" key={tag}>
@@ -100,7 +101,24 @@ function CardFace({ card }: { card: CardItem }) {
             </span>
           ))}
         </div>
-      )}
+        {/* Chỉ con số, không nhãn "Tạo:" — ý nghĩa đầy đủ nằm trong title. */}
+        <time
+          className="card-date"
+          dateTime={created.toISOString()}
+          title={`Tạo lúc ${created.toLocaleString("vi-VN")}`}
+        >
+          {shortDate(created)}
+        </time>
+      </div>
     </>
   );
+}
+
+/** 18/09 trong năm nay; khác năm thì thêm năm (18/09/2025) để không nhầm. */
+function shortDate(d: Date) {
+  // Tự ghép thay vì toLocaleDateString: bản vi-VN của trình duyệt cho "18-09"
+  // khi bỏ năm, lệch với "18/09/2025" khi có năm.
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const dm = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+  return d.getFullYear() === new Date().getFullYear() ? dm : `${dm}/${d.getFullYear()}`;
 }

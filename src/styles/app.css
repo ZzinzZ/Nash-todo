@@ -473,12 +473,12 @@ html[data-dragging="true"] {
 .card {
   position: relative;
   isolation: isolate;
-  /* Mọi thẻ cùng một khổ 3:2 (ngang 6 : cao 4) — cột đọc như một lưới đều,
+  /* Mọi thẻ cùng một khổ 2:1 (ngang 6 : cao 3) — cột đọc như một lưới đều,
      không thẻ nào kéo dài vì ghi chú dài. Dư chữ thì cắt, mở thẻ để đọc hết. */
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 2 / 1;
   padding: 12px 14px 13px;
   overflow: hidden;
   text-align: left;
@@ -563,8 +563,10 @@ html[data-dragging="true"] {
 .card-note {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  margin-top: 5px;
+  /* Khổ 2:1 chỉ đủ chỗ cho tiêu đề 2 dòng + ghi chú 1 dòng + hàng đáy. */
+  -webkit-line-clamp: 1;
+  flex-shrink: 0;
+  margin-top: 4px;
   overflow: hidden;
   font-size: var(--fs-sm);
   line-height: 1.45;
@@ -573,17 +575,34 @@ html[data-dragging="true"] {
   overflow-wrap: anywhere;
 }
 
-/* Tag luôn nằm sát đáy thẻ, một hàng. Tràn thì mờ dần ở mép phải thay vì
-   xuống dòng làm vỡ khổ thẻ. */
-.card-tags {
+/* Hàng đáy: tag bên trái, ngày tạo góc phải. Luôn sát đáy thẻ. */
+.card-foot {
   display: flex;
   flex-shrink: 0;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding-top: 8px;
+  margin-top: auto;
+}
+
+/* Tag một hàng; tràn thì mờ dần ở mép phải thay vì xuống dòng làm vỡ khổ thẻ. */
+.card-tags {
+  display: flex;
+  flex: 1;
   gap: 5px;
   min-width: 0;
-  padding-top: 9px;
-  margin-top: auto;
   overflow: hidden;
   mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+
+.card-date {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.7;
+  color: var(--ink-3);
 }
 
 .tag {
